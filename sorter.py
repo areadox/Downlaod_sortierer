@@ -138,19 +138,48 @@ def _protected(path, cfg):
     return os.path.dirname(os.path.abspath(path)) == app_dir
 
 
-def run_once(cfg, log=print, processed=None):
+def safe_move(src, dest):
+    """Verschiebt eine Datei und wartet, bis sie vollständig angekommen ist.
+
+    Auf demselben Laufwerk ist das ein schnelles Umbenennen. Auf ein anderes
+    Laufwerk wird erst komplett kopiert, die Größe geprüft und erst dann
+    das Original gelöscht.
+    """
+    try:
+        os.rename(src, dest)
+        return
+    except OSError:
+        pass  # anderes Laufwerk -> kopieren
+    size = os.path.getsize(src)
+    shutil.copy2(src, dest)
+    if os.path.getsize(dest) != size:
+        os.remove(dest)
+        raise OSError("Kopie unvollständig, Original bleibt liegen")
+    os.remove(src)
+
+
+def run_once(cfg, log=print, processed=None, should_stop=lambda: False):
     """Einmal durch den überwachten Ordner gehen. Gibt Anzahl verarbeiteter Dateien zurück.
+
+    Es werden immer höchstens `batch_size` Dateien nacheinander verarbeitet,
+    danach wird `batch_pause_seconds` gewartet, bevor die nächsten drankommen.
 
     processed: Menge bereits kopierter Dateien (nur im Kopier-Modus nötig,
     damit dieselbe Datei nicht immer wieder kopiert wird).
+    should_stop: Funktion, die True liefert, wenn abgebrochen werden soll.
     """
     src = cfg["watch_folder"]
     if not os.path.isdir(src):
         log(f"Überwachter Ordner existiert nicht: {src}")
         return 0
     copy = cfg.get("mode") == "copy"
+    batch_size = max(1, int(cfg.get("batch_size", 3)))
+    pause = max(0, int(cfg.get("batch_pause_seconds", 5)))
     done = 0
+    in_batch = 0
     for file in sorted(os.listdir(src)):
+        if should_stop():
+            break
         path = os.path.join(src, file)
         if os.path.isdir(path) or file.startswith(".") or file.lower() == "desktop.ini":
             continue
@@ -160,6 +189,16 @@ def run_once(cfg, log=print, processed=None):
             key = (path, os.path.getsize(path), os.path.getmtime(path))
             if key in processed:
                 continue
+
+        # Nach jeweils batch_size Dateien kurz Pause machen
+        if in_batch >= batch_size:
+            log(f"{batch_size} Dateien erledigt, warte {pause} Sek. …")
+            for _ in range(pause * 10):
+                if should_stop():
+                    return done
+                time.sleep(0.1)
+            in_batch = 0
+
         dest = unique_path(plan(file, cfg))
         try:
             os.makedirs(os.path.dirname(dest), exist_ok=True)
@@ -169,9 +208,10 @@ def run_once(cfg, log=print, processed=None):
                     processed.add(key)
                 log(f"Kopiert: {file}  →  {dest}")
             else:
-                shutil.move(path, dest)
+                safe_move(path, dest)
                 log(f"Verschoben: {file}  →  {dest}")
             done += 1
+            in_batch += 1
         except PermissionError:
             log(f"Noch in Benutzung, später nochmal: {file}")
         except OSError as e:

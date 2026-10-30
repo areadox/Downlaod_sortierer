@@ -7,6 +7,8 @@ Kleines Python-Programm mit Oberfläche, das den Download-Ordner überwacht und 
   - Serien → `Serien/Dark/Staffel 01/Dark S01E03.mp4`
   - Filme → `Filme/Inception (2010)/Inception (2010).mkv`
 - Unfertige Downloads (`.crdownload`, `.part`, …) und Dateien, die gerade noch geschrieben werden, bleiben liegen.
+- Es werden immer nur ein paar Dateien am Stück verschoben (Standard: 3), jede wird erst vollständig
+  fertig kopiert und geprüft, dann folgt eine kurze Pause (Standard: 5 Sek.). Beides ist einstellbar.
 - Gibt es eine Datei schon, wird ` (2)` angehängt – es wird nie etwas überschrieben.
 
 ## Erkannte Video-Namen
@@ -38,7 +40,7 @@ darauf in `shell:startup` legen und im Programm „Überwachung beim Programmsta
 
 Alles wird im Fenster eingestellt und in `settings.json` gespeichert:
 überwachter Ordner, Zielordner für Dateien / Filme / Serien, Verschieben oder Kopieren,
-Prüfintervall, Staffel-Unterordner und die Zuordnung Dateiendung → Ordner (Tab „Dateitypen“).
+Prüfintervall, Dateien am Stück + Pause, Staffel-Unterordner und die Zuordnung Dateiendung → Ordner (Tab „Dateitypen“).
 
 ## Dateien
 

@@ -45,6 +45,9 @@ DEFAULTS = {
     "interval_seconds": 10,
     # Datei erst anfassen, wenn sie so lange nicht mehr verändert wurde (Download fertig)
     "min_age_seconds": 15,
+    # Höchstens so viele Dateien am Stück verschieben, dann Pause
+    "batch_size": 3,
+    "batch_pause_seconds": 5,
     # Videos umbenennen und in Film-/Serienordner einsortieren
     "rename_videos": True,
     # Serien zusätzlich in "Staffel 01"-Unterordner legen

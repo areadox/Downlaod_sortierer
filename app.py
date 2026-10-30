@@ -27,7 +27,7 @@ class Watcher(threading.Thread):
         while not self.stop_event.is_set():
             cfg = self.get_cfg()
             try:
-                sorter.run_once(cfg, self.log, self.processed)
+                sorter.run_once(cfg, self.log, self.processed, self.stop_event.is_set)
             except Exception as e:  # Watcher soll nie abstürzen
                 self.log(f"Unerwarteter Fehler: {e}")
             self.stop_event.wait(max(2, int(cfg.get("interval_seconds", 10))))
@@ -100,6 +100,16 @@ class App(tk.Tk):
         self.vars["min_age_seconds"] = tk.IntVar(value=self.cfg["min_age_seconds"])
         ttk.Spinbox(tab, from_=0, to=3600, width=8,
                     textvariable=self.vars["min_age_seconds"]).grid(row=r, column=1, sticky="w", **pad)
+
+        r += 1
+        ttk.Label(tab, text="Dateien am Stück:").grid(row=r, column=0, sticky="w", **pad)
+        bf0 = ttk.Frame(tab)
+        bf0.grid(row=r, column=1, sticky="w", **pad)
+        self.vars["batch_size"] = tk.IntVar(value=self.cfg["batch_size"])
+        ttk.Spinbox(bf0, from_=1, to=1000, width=6, textvariable=self.vars["batch_size"]).pack(side="left")
+        ttk.Label(bf0, text="  danach Pause (Sek.):").pack(side="left")
+        self.vars["batch_pause_seconds"] = tk.IntVar(value=self.cfg["batch_pause_seconds"])
+        ttk.Spinbox(bf0, from_=0, to=3600, width=6, textvariable=self.vars["batch_pause_seconds"]).pack(side="left")
 
         for key, text in [
             ("rename_videos", "Videos umbenennen und nach Film / Serie einsortieren"),
