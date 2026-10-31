@@ -132,10 +132,28 @@ def _is_ready(path, cfg):
     return age >= cfg.get("min_age_seconds", 15)
 
 
+# Eigene Programmdateien, die nie verschoben werden dürfen
+_OWN_FILES = {"settings.json", "app.py", "sorter.py", "settings.py", "updater.py", "version.py",
+              "tray.py", "make_icon.py", "build_exe.bat", "requirements.txt", "readme.md", "icon.ico"}
+
+
 def _protected(path, cfg):
-    """Eigene Programmdateien und die Zielordner nie anfassen."""
-    from settings import APP_DIR as app_dir
-    return os.path.dirname(os.path.abspath(path)) == app_dir
+    """True nur für die eigenen Programmdateien (die .exe selbst, settings.json, Quellcode).
+
+    Früher galt jede Datei im Programmordner als geschützt. Lag die .exe im
+    Download-Ordner, wurde dadurch gar nichts mehr aufgeräumt.
+    """
+    import sys
+    from settings import APP_DIR
+    path = os.path.abspath(path)
+    if getattr(sys, "frozen", False) and os.path.normcase(path) == os.path.normcase(os.path.abspath(sys.executable)):
+        return True
+    same_dir = os.path.normcase(os.path.dirname(path)) == os.path.normcase(APP_DIR)
+    return same_dir and os.path.basename(path).lower() in _OWN_FILES
+
+
+# Dateien, für die schon gemeldet wurde, dass sie noch warten (damit das Protokoll nicht vollläuft)
+_reported_waiting = set()
 
 
 def safe_move(src, dest):
@@ -183,8 +201,14 @@ def run_once(cfg, log=print, processed=None, should_stop=lambda: False):
         path = os.path.join(src, file)
         if os.path.isdir(path) or file.startswith(".") or file.lower() == "desktop.ini":
             continue
-        if _protected(path, cfg) or not _is_ready(path, cfg):
+        if _protected(path, cfg):
             continue
+        if not _is_ready(path, cfg):
+            if path not in _reported_waiting:
+                _reported_waiting.add(path)
+                log(f"Wartet noch (Download läuft oder gerade erst geändert): {file}")
+            continue
+        _reported_waiting.discard(path)
         if copy and processed is not None:
             key = (path, os.path.getsize(path), os.path.getmtime(path))
             if key in processed:
