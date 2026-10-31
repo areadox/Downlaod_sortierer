@@ -61,6 +61,10 @@ DEFAULTS = {
     "autostart_watch": False,
     # Beim Start auf GitHub nach einer neuen Version suchen
     "check_updates": True,
+    # Tray-Icon: minimiert starten, X/Minimieren schickt in den Tray, mit Windows starten
+    "start_minimized": False,
+    "close_to_tray": True,
+    "windows_autostart": False,
     "video_extensions": DEFAULT_VIDEO_EXTENSIONS,
     "file_type_map": DEFAULT_FILE_TYPE_MAP,
 }

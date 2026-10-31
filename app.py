@@ -1,6 +1,7 @@
 """Download-Sortierer: überwacht einen Ordner und räumt ihn automatisch auf.
 
 Start mit Oberfläche:   python app.py
+Minimiert im Tray:      python app.py --tray
 Einmal ohne Fenster:    python app.py --once
 """
 import queue
@@ -11,6 +12,7 @@ from tkinter import filedialog, messagebox, ttk
 
 import settings
 import sorter
+import tray
 import updater
 from version import __version__
 
@@ -39,7 +41,7 @@ class Watcher(threading.Thread):
 
 
 class App(tk.Tk):
-    def __init__(self):
+    def __init__(self, start_in_tray=False):
         super().__init__()
         self.title(f"Download-Sortierer {__version__}")
         self.geometry("820x600")
@@ -49,9 +51,20 @@ class App(tk.Tk):
         self.log_queue = queue.Queue()
         self.cfg_lock = threading.Lock()
 
+        self.tray = None
+
         self._build_ui()
         self.after(200, self._drain_log)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self.bind("<Unmap>", self._on_minimize)
+
+        if tray.AVAILABLE:
+            try:
+                self.tray = tray.Tray(self)
+            except Exception as e:
+                self.log(f"Tray-Icon nicht verfügbar: {e}")
+        if self.tray and (start_in_tray or self.cfg.get("start_minimized")):
+            self.withdraw()
         if self.cfg.get("autostart_watch"):
             self.toggle_watch()
         if self.cfg.get("check_updates", True):
@@ -120,6 +133,9 @@ class App(tk.Tk):
             ("season_subfolders", "Serien in Unterordner „Staffel 01“ usw. legen"),
             ("autostart_watch", "Überwachung beim Programmstart automatisch starten"),
             ("check_updates", "Beim Start nach Updates suchen"),
+            ("start_minimized", "Minimiert im Tray starten (Icon neben der Uhr)"),
+            ("close_to_tray", "Schließen (X) und Minimieren schickt das Programm in den Tray"),
+            ("windows_autostart", "Mit Windows starten (minimiert im Tray)"),
         ]:
             r += 1
             self.vars[key] = tk.BooleanVar(value=self.cfg[key])
@@ -192,6 +208,10 @@ class App(tk.Tk):
         with self.cfg_lock:
             self.cfg = cfg
         settings.save(cfg)
+        try:
+            tray.set_windows_autostart(cfg.get("windows_autostart", False))
+        except OSError as e:
+            self.log(f"Autostart konnte nicht gesetzt werden: {e}")
         self.log("Einstellungen gespeichert.")
 
     def _get_cfg(self):
@@ -223,6 +243,8 @@ class App(tk.Tk):
             self.watch_btn.config(text="▶ Überwachung starten")
             self.status.config(text="Gestoppt")
             self.log("Überwachung gestoppt.")
+            if self.tray:
+                self.tray.set_active(False, "Download-Sortierer – gestoppt")
         else:
             self.save()
             self.watcher = Watcher(self._get_cfg, self.log)
@@ -230,6 +252,8 @@ class App(tk.Tk):
             self.watch_btn.config(text="■ Überwachung stoppen")
             self.status.config(text=f"Überwacht: {self.cfg['watch_folder']}")
             self.log("Überwachung gestartet.")
+            if self.tray:
+                self.tray.set_active(True, f"Download-Sortierer – überwacht {self.cfg['watch_folder']}")
 
     def run_now(self):
         self.save()
@@ -263,13 +287,22 @@ class App(tk.Tk):
                         "Update", f"Konnte nicht nach Updates suchen:\n{e}"))
                 return
             if info:
-                self.after(0, lambda: self._offer_update(info))
+                self.after(0, lambda: self._update_found(info, silent))
             elif not silent:
                 self.after(0, lambda: messagebox.showinfo(
                     "Update", f"Du hast die neueste Version ({__version__})."))
         threading.Thread(target=work, daemon=True).start()
 
+    def _update_found(self, info, silent):
+        if silent and self.tray and not self.winfo_viewable():
+            # Im Tray nicht mit einem Fenster stören, nur Hinweis anzeigen
+            self.tray.notify(f"Version {info['version']} ist verfügbar. "
+                             "Rechtsklick auf das Icon → „Nach Updates suchen“.")
+            return
+        self._offer_update(info)
+
     def _offer_update(self, info):
+        self.show_window()
         notes = info["notes"].strip()
         text = f"Version {info['version']} ist verfügbar (du hast {__version__})."
         if notes:
@@ -299,11 +332,37 @@ class App(tk.Tk):
     def _install(self, path):
         self.log("Installiere Update, Programm startet neu …")
         updater.install_and_restart(path)
-        self._on_close()
+        self.quit_app()
+
+    # ---------- Fenster / Tray ----------
+    def show_window(self):
+        self.deiconify()
+        self.state("normal")
+        self.lift()
+        self.focus_force()
+
+    def _hide_to_tray(self):
+        self.withdraw()
+        if not getattr(self, "_tray_hint_shown", False):
+            self._tray_hint_shown = True
+            self.tray.notify("Läuft im Hintergrund weiter. Doppelklick auf das Icon öffnet das Fenster.")
+
+    def _on_minimize(self, event):
+        if event.widget is self and self.tray and self.cfg.get("close_to_tray", True) \
+                and self.state() == "iconic":
+            self.after(10, self._hide_to_tray)
 
     def _on_close(self):
+        if self.tray and self.cfg.get("close_to_tray", True):
+            self._hide_to_tray()
+        else:
+            self.quit_app()
+
+    def quit_app(self):
         if self.watcher:
             self.watcher.stop()
+        if self.tray:
+            self.tray.stop()
         self.destroy()
 
 
@@ -311,4 +370,4 @@ if __name__ == "__main__":
     if "--once" in sys.argv:
         sorter.run_once(settings.load())
     else:
-        App().mainloop()
+        App(start_in_tray="--tray" in sys.argv).mainloop()

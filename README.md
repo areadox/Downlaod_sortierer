@@ -24,17 +24,30 @@ Kleines Python-Programm mit Oberfläche, das den Download-Ordner überwacht und 
 Alles andere mit Video-Endung wird als Film unter seinem bereinigten Namen abgelegt.
 Im Programm gibt es eine **Vorschau**, in die man einen Dateinamen tippen kann, um das Ziel zu sehen.
 
+## Tray-Icon
+
+Das Programm kann als Icon im Infobereich (neben der Uhr) laufen:
+- **Minimiert im Tray starten** – beim Start erscheint kein Fenster, nur das Icon
+- **Schließen (X) / Minimieren** schickt das Programm in den Tray, statt es zu beenden
+- **Mit Windows starten** – trägt das Programm in den Windows-Autostart ein (startet im Tray)
+
+Doppelklick auf das Icon öffnet das Fenster, Rechtsklick zeigt das Menü (Überwachung starten/stoppen,
+Jetzt aufräumen, Nach Updates suchen, Beenden). Der Punkt im Icon ist grün, solange die Überwachung läuft.
+Mit `--tray` startet das Programm immer im Tray, z. B. `Download-Sortierer.exe --tray`.
+
 ## Starten
 
-Benötigt nur Python 3.8+ (tkinter ist unter Windows dabei, unter Linux ggf. `sudo apt install python3-tk`).
+Am einfachsten die fertige .exe nehmen (siehe unten). Aus dem Quellcode: Python 3.8+ und
+`pip install -r requirements.txt` (pystray + Pillow für das Tray-Icon; ohne sie läuft das Programm ohne Tray).
 
 ```
 python app.py          # mit Fenster
+python app.py --tray   # minimiert im Tray
 python app.py --once   # einmal aufräumen, ohne Fenster (z. B. für die Aufgabenplanung)
 ```
 
-Unter Windows startet `pythonw app.py` ohne schwarzes Konsolenfenster. Für den Autostart eine Verknüpfung
-darauf in `shell:startup` legen und im Programm „Überwachung beim Programmstart automatisch starten“ anhaken.
+Unter Windows startet `pythonw app.py` ohne schwarzes Konsolenfenster. Für den Autostart im Programm
+„Mit Windows starten“ und „Überwachung beim Programmstart automatisch starten“ anhaken.
 
 ## Als .exe
 
@@ -67,5 +80,7 @@ Prüfintervall, Dateien am Stück + Pause, Staffel-Unterordner und die Zuordnung
 - `app.py` – Oberfläche und Hintergrund-Überwachung
 - `sorter.py` – Erkennung und Sortierlogik
 - `settings.py` – Standardwerte, Laden/Speichern
+- `tray.py` – Tray-Icon, Menü und Windows-Autostart
+- `make_icon.py` – erzeugt `icon.ico` für die .exe
 - `updater.py` – Update-Suche und Selbst-Austausch der .exe
 - `version.py` – Versionsnummer (erhöhen = neues Release)
