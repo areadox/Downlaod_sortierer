@@ -89,7 +89,26 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+timeout /t 2 /nobreak >nul
 start "" "{current}"
 del "%~f0"
 """)
-    subprocess.Popen(["cmd", "/c", script], creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    subprocess.Popen(["cmd", "/c", script], env=clean_environment(),
+                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+
+def clean_environment():
+    """Umgebung ohne die Variablen, die PyInstaller für die laufende .exe setzt.
+
+    Sonst erbt die neu gestartete .exe Pfade in den Temp-Ordner (_MEIxxxx) der
+    alten .exe. Der wird beim Beenden gelöscht -> Fehler "Failed to load Python DLL".
+    """
+    env = dict(os.environ)
+    mei = getattr(sys, "_MEIPASS", None)
+    for key in list(env):
+        if key.startswith("_PYI_") or key in ("_MEIPASS", "_MEIPASS2"):
+            del env[key]
+        elif mei and mei.lower() in env[key].lower():  # z. B. TCL_LIBRARY, TK_LIBRARY
+            del env[key]
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+    return env
