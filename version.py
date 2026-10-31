@@ -1,4 +1,7 @@
-"""Versionsnummer des Programms. Wird beim Bauen auf GitHub aus dem Tag (z. B. v1.2.0) gesetzt."""
+"""Versionsnummer des Programms.
+
+Erhöhen und auf main pushen -> GitHub baut die .exe und erstellt ein Release v<Nummer>.
+"""
 __version__ = "1.0.0"
 
 # GitHub-Repository, in dem nach Updates gesucht wird

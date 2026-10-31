@@ -1,11 +1,12 @@
 name: EXE bauen
 
-# Läuft bei jedem Push auf main (Test-Build zum Herunterladen unter "Actions")
-# und bei einem Versions-Tag wie v1.2.0 (dann wird ein Release mit der .exe erstellt).
+# Bei jedem Push auf main wird die .exe gebaut.
+# Steht in version.py eine Versionsnummer, für die es noch kein Release gibt,
+# wird automatisch ein Release (z. B. v1.1.0) mit der .exe erstellt.
+# Sonst ist die .exe nur als Test-Build unter "Actions" -> Lauf -> "Artifacts" verfügbar.
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -21,13 +22,23 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Version aus Tag setzen
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Version lesen und prüfen, ob es schon ein Release gibt
+        id: ver
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          $v = "${{ github.ref_name }}".TrimStart("v")
-          (Get-Content version.py) -replace '__version__ = ".*"', "__version__ = `"$v`"" | Set-Content version.py
-          Get-Content version.py
+          $v = python -c "from version import __version__; print(__version__)"
+          "version=$v" >> $env:GITHUB_OUTPUT
+          gh release view "v$v" --repo "${{ github.repository }}" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            "release=false" >> $env:GITHUB_OUTPUT
+            Write-Host "Release v$v existiert schon - nur Test-Build"
+          } else {
+            "release=true" >> $env:GITHUB_OUTPUT
+            Write-Host "Neues Release v$v wird erstellt"
+          }
+          exit 0
 
       - name: PyInstaller installieren
         run: python -m pip install --upgrade pip pyinstaller
@@ -38,12 +49,15 @@ jobs:
       - name: Als Build-Artefakt hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: Download-Sortierer
+          name: Download-Sortierer-${{ steps.ver.outputs.version }}
           path: dist/Download-Sortierer.exe
 
       - name: Release erstellen
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.ver.outputs.release == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: Download-Sortierer ${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
           files: dist/Download-Sortierer.exe
           generate_release_notes: true

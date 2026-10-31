@@ -42,14 +42,11 @@ darauf in `shell:startup` legen und im Programm „Überwachung beim Programmsta
 `Download-Sortierer.exe` laden. Sie läuft ohne Python; `settings.json` wird neben der .exe gespeichert.
 
 Die .exe wird automatisch von GitHub Actions gebaut (`.github/workflows/build.yml`):
-- jeder Push auf `main` → Test-Build, herunterladbar unter *Actions* → Lauf → *Artifacts*
-- ein Tag wie `v1.1.0` → neues Release mit der .exe
+- jeder Push auf `main` baut die .exe (Test-Build unter *Actions* → Lauf → *Artifacts*)
+- gibt es für die Nummer in `version.py` noch kein Release, wird automatisch eines erstellt (z. B. `v1.1.0`)
 
-Neue Version veröffentlichen:
-```
-git tag v1.1.0
-git push origin v1.1.0
-```
+**Neue Version veröffentlichen:** in `version.py` die Nummer erhöhen (z. B. `"1.1.0"`), committen, pushen – fertig.
+Alle installierten Programme bieten das Update dann beim nächsten Start an.
 
 Selbst bauen geht weiterhin mit `build_exe.bat`.
 
@@ -71,4 +68,4 @@ Prüfintervall, Dateien am Stück + Pause, Staffel-Unterordner und die Zuordnung
 - `sorter.py` – Erkennung und Sortierlogik
 - `settings.py` – Standardwerte, Laden/Speichern
 - `updater.py` – Update-Suche und Selbst-Austausch der .exe
-- `version.py` – Versionsnummer (wird beim Release aus dem Tag gesetzt)
+- `version.py` – Versionsnummer (erhöhen = neues Release)
