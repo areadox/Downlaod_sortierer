@@ -134,7 +134,7 @@ def _is_ready(path, cfg):
 
 def _protected(path, cfg):
     """Eigene Programmdateien und die Zielordner nie anfassen."""
-    app_dir = os.path.dirname(os.path.abspath(__file__))
+    from settings import APP_DIR as app_dir
     return os.path.dirname(os.path.abspath(path)) == app_dir
 
 

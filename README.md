@@ -36,6 +36,11 @@ python app.py --once   # einmal aufräumen, ohne Fenster (z. B. für die Aufgabe
 Unter Windows startet `pythonw app.py` ohne schwarzes Konsolenfenster. Für den Autostart eine Verknüpfung
 darauf in `shell:startup` legen und im Programm „Überwachung beim Programmstart automatisch starten“ anhaken.
 
+## Als .exe
+
+`build_exe.bat` doppelklicken. Es installiert PyInstaller und erzeugt `dist\Download-Sortierer.exe`.
+Die .exe läuft dann ohne Python und kann irgendwohin kopiert werden; `settings.json` wird neben der .exe gespeichert.
+
 ## Einstellungen
 
 Alles wird im Fenster eingestellt und in `settings.json` gespeichert:

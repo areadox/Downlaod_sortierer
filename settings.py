@@ -1,8 +1,13 @@
 """Laden und Speichern der Einstellungen (settings.json neben dem Programm)."""
 import json
 import os
+import sys
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+# Als .exe (PyInstaller) liegt __file__ in einem Temp-Ordner -> Ordner der .exe nehmen
+if getattr(sys, "frozen", False):
+    APP_DIR = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(APP_DIR, "settings.json")
 
 DEFAULT_FILE_TYPE_MAP = {
