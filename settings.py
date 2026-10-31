@@ -59,6 +59,8 @@ DEFAULTS = {
     "season_subfolders": True,
     # Überwachung beim Programmstart sofort starten
     "autostart_watch": False,
+    # Beim Start auf GitHub nach einer neuen Version suchen
+    "check_updates": True,
     "video_extensions": DEFAULT_VIDEO_EXTENSIONS,
     "file_type_map": DEFAULT_FILE_TYPE_MAP,
 }

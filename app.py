@@ -11,6 +11,8 @@ from tkinter import filedialog, messagebox, ttk
 
 import settings
 import sorter
+import updater
+from version import __version__
 
 
 class Watcher(threading.Thread):
@@ -39,7 +41,7 @@ class Watcher(threading.Thread):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Download-Sortierer")
+        self.title(f"Download-Sortierer {__version__}")
         self.geometry("820x600")
         self.minsize(640, 480)
         self.cfg = settings.load()
@@ -52,6 +54,8 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         if self.cfg.get("autostart_watch"):
             self.toggle_watch()
+        if self.cfg.get("check_updates", True):
+            self.after(2000, lambda: self.check_updates(silent=True))
 
     # ---------- Oberfläche ----------
     def _build_ui(self):
@@ -115,6 +119,7 @@ class App(tk.Tk):
             ("rename_videos", "Videos umbenennen und nach Film / Serie einsortieren"),
             ("season_subfolders", "Serien in Unterordner „Staffel 01“ usw. legen"),
             ("autostart_watch", "Überwachung beim Programmstart automatisch starten"),
+            ("check_updates", "Beim Start nach Updates suchen"),
         ]:
             r += 1
             self.vars[key] = tk.BooleanVar(value=self.cfg[key])
@@ -145,6 +150,8 @@ class App(tk.Tk):
         self.watch_btn = ttk.Button(ctrl, text="▶ Überwachung starten", command=self.toggle_watch)
         self.watch_btn.pack(side="left")
         ttk.Button(ctrl, text="Jetzt einmal aufräumen", command=self.run_now).pack(side="left", padx=6)
+        ttk.Button(ctrl, text="Nach Updates suchen",
+                   command=lambda: self.check_updates(silent=False)).pack(side="left", padx=6)
         self.status = ttk.Label(ctrl, text="Gestoppt")
         self.status.pack(side="right")
 
@@ -243,6 +250,56 @@ class App(tk.Tk):
             self.log_box.see("end")
             self.log_box.config(state="disabled")
         self.after(200, self._drain_log)
+
+    # ---------- Updates ----------
+    def check_updates(self, silent):
+        """Sucht im Hintergrund nach einem neuen Release auf GitHub."""
+        def work():
+            try:
+                info = updater.check()
+            except Exception as e:
+                if not silent:
+                    self.after(0, lambda: messagebox.showerror(
+                        "Update", f"Konnte nicht nach Updates suchen:\n{e}"))
+                return
+            if info:
+                self.after(0, lambda: self._offer_update(info))
+            elif not silent:
+                self.after(0, lambda: messagebox.showinfo(
+                    "Update", f"Du hast die neueste Version ({__version__})."))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _offer_update(self, info):
+        notes = info["notes"].strip()
+        text = f"Version {info['version']} ist verfügbar (du hast {__version__})."
+        if notes:
+            text += "\n\nNeu:\n" + notes[:800]
+        if not updater.is_frozen() or not info["download_url"]:
+            messagebox.showinfo("Update verfügbar", text + "\n\nDownload: " + updater.RELEASES_PAGE)
+            return
+        if not messagebox.askyesno("Update verfügbar", text + "\n\nJetzt herunterladen und installieren?"):
+            return
+        self.log(f"Lade Version {info['version']} herunter …")
+
+        def work():
+            try:
+                last = [-10]
+
+                def progress(p):
+                    if p >= last[0] + 10:
+                        last[0] = p
+                        self.log(f"  {p} %")
+                path = updater.download(info["download_url"], progress)
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Update", f"Download fehlgeschlagen:\n{e}"))
+                return
+            self.after(0, lambda: self._install(path))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _install(self, path):
+        self.log("Installiere Update, Programm startet neu …")
+        updater.install_and_restart(path)
+        self._on_close()
 
     def _on_close(self):
         if self.watcher:

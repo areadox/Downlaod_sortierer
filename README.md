@@ -38,8 +38,26 @@ darauf in `shell:startup` legen und im Programm „Überwachung beim Programmsta
 
 ## Als .exe
 
-`build_exe.bat` doppelklicken. Es installiert PyInstaller und erzeugt `dist\Download-Sortierer.exe`.
-Die .exe läuft dann ohne Python und kann irgendwohin kopiert werden; `settings.json` wird neben der .exe gespeichert.
+**Fertige .exe herunterladen:** unter [Releases](https://github.com/areadox/downlaod_sortierer/releases/latest)
+`Download-Sortierer.exe` laden. Sie läuft ohne Python; `settings.json` wird neben der .exe gespeichert.
+
+Die .exe wird automatisch von GitHub Actions gebaut (`.github/workflows/build.yml`):
+- jeder Push auf `main` → Test-Build, herunterladbar unter *Actions* → Lauf → *Artifacts*
+- ein Tag wie `v1.1.0` → neues Release mit der .exe
+
+Neue Version veröffentlichen:
+```
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+Selbst bauen geht weiterhin mit `build_exe.bat`.
+
+## Updates
+
+Das Programm sucht beim Start (abschaltbar) und über den Knopf „Nach Updates suchen“ nach einem neueren
+Release auf GitHub. Als .exe lädt es die neue Version auf Wunsch herunter, tauscht sich selbst aus und startet neu.
+Die Einstellungen bleiben dabei erhalten.
 
 ## Einstellungen
 
@@ -52,3 +70,5 @@ Prüfintervall, Dateien am Stück + Pause, Staffel-Unterordner und die Zuordnung
 - `app.py` – Oberfläche und Hintergrund-Überwachung
 - `sorter.py` – Erkennung und Sortierlogik
 - `settings.py` – Standardwerte, Laden/Speichern
+- `updater.py` – Update-Suche und Selbst-Austausch der .exe
+- `version.py` – Versionsnummer (wird beim Release aus dem Tag gesetzt)
