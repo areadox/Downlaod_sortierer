@@ -41,6 +41,8 @@ class Watcher(threading.Thread):
 
 
 class App(tk.Tk):
+    NO_SEASON_FOLDER = "Kein Unterordner"
+
     def __init__(self, start_in_tray=False):
         super().__init__()
         self.title(f"Download-Sortierer {__version__}")
@@ -128,9 +130,23 @@ class App(tk.Tk):
         self.vars["batch_pause_seconds"] = tk.IntVar(value=self.cfg["batch_pause_seconds"])
         ttk.Spinbox(bf0, from_=0, to=3600, width=6, textvariable=self.vars["batch_pause_seconds"]).pack(side="left")
 
+        r += 1
+        ttk.Label(tab, text="Staffel-Ordner:").grid(row=r, column=0, sticky="w", **pad)
+        sf = ttk.Frame(tab)
+        sf.grid(row=r, column=1, columnspan=2, sticky="w", **pad)
+        current = self.cfg.get("season_folder_format", "Staffel 01") if self.cfg.get("season_subfolders", True) \
+            else self.NO_SEASON_FOLDER
+        self.season_var = tk.StringVar(value=current)
+        ttk.Combobox(sf, textvariable=self.season_var, width=18, values=[
+            "Staffel 01", "Staffel01", "Staffel 1", "S01", "S1", "Season 01", "Season01", "Season 1",
+            self.NO_SEASON_FOLDER]).pack(side="left")
+        self.season_example = ttk.Label(sf, foreground="#666")
+        self.season_example.pack(side="left", padx=8)
+        self.season_var.trace_add("write", lambda *_: self._update_season_example())
+        self._update_season_example()
+
         for key, text in [
             ("rename_videos", "Videos umbenennen und nach Film / Serie einsortieren"),
-            ("season_subfolders", "Serien in Unterordner „Staffel 01“ usw. legen"),
             ("autostart_watch", "Überwachung beim Programmstart automatisch starten"),
             ("check_updates", "Beim Start nach Updates suchen"),
             ("start_minimized", "Minimiert im Tray starten (Icon neben der Uhr)"),
@@ -174,6 +190,14 @@ class App(tk.Tk):
         self.log_box = tk.Text(self, height=10, state="disabled", font=("Consolas", 9))
         self.log_box.pack(fill="both", expand=False, padx=8, pady=8)
 
+    def _update_season_example(self):
+        fmt = self.season_var.get().strip()
+        if not fmt or fmt == self.NO_SEASON_FOLDER:
+            text = "→ Serie/Serie S03E05.mkv"
+        else:
+            text = f"→ Serie/{sorter.season_folder_name(fmt, 3)}/Serie S03E05.mkv   (eigenes Muster möglich)"
+        self.season_example.config(text=text)
+
     def _pick_folder(self, var):
         path = filedialog.askdirectory(initialdir=var.get() or None)
         if path:
@@ -197,6 +221,12 @@ class App(tk.Tk):
             else:
                 types[ext] = folder
         cfg["file_type_map"], cfg["video_extensions"] = types, videos
+        season = self.season_var.get().strip()
+        if not season or season == self.NO_SEASON_FOLDER:
+            cfg["season_subfolders"] = False
+        else:
+            cfg["season_subfolders"] = True
+            cfg["season_folder_format"] = season
         return cfg
 
     def save(self):

@@ -57,6 +57,8 @@ DEFAULTS = {
     "rename_videos": True,
     # Serien zusätzlich in "Staffel 01"-Unterordner legen
     "season_subfolders": True,
+    # Name der Staffel-Ordner als Beispiel für Staffel 1, z. B. "Staffel 01", "Staffel01", "S01", "Season 1"
+    "season_folder_format": "Staffel 01",
     # Überwachung beim Programmstart sofort starten
     "autostart_watch": False,
     # Beim Start auf GitHub nach einer neuen Version suchen

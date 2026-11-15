@@ -24,6 +24,20 @@ Kleines Python-Programm mit Oberfläche, das den Download-Ordner überwacht und 
 Alles andere mit Video-Endung wird als Film unter seinem bereinigten Namen abgelegt.
 Im Programm gibt es eine **Vorschau**, in die man einen Dateinamen tippen kann, um das Ziel zu sehen.
 
+## Staffel-Ordner
+
+Wie die Staffel-Unterordner heißen, wird unter „Staffel-Ordner“ ausgewählt oder selbst eingetippt.
+Das Muster ist ein Beispiel für Staffel 1 – die Zahl wird durch die Staffelnummer ersetzt, ihre Länge
+bestimmt die Stellenzahl:
+
+| Muster | Staffel 3 |
+|---|---|
+| `Staffel 01` (Standard) | `Staffel 03` |
+| `Staffel01` | `Staffel03` |
+| `S01` | `S03` |
+| `Season 1` | `Season 3` |
+| `Kein Unterordner` | Folgen liegen direkt im Serienordner |
+
 ## Tray-Icon
 
 Das Programm kann als Icon im Infobereich (neben der Uhr) laufen:
@@ -73,7 +87,7 @@ Die Einstellungen bleiben dabei erhalten.
 
 Alles wird im Fenster eingestellt und in `settings.json` gespeichert:
 überwachter Ordner, Zielordner für Dateien / Filme / Serien, Verschieben oder Kopieren,
-Prüfintervall, Dateien am Stück + Pause, Staffel-Unterordner und die Zuordnung Dateiendung → Ordner (Tab „Dateitypen“).
+Prüfintervall, Dateien am Stück + Pause, Staffel-Ordner und die Zuordnung Dateiendung → Ordner (Tab „Dateitypen“).
 
 ## Dateien
 

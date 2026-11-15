@@ -83,13 +83,30 @@ def parse_video(name):
     return {"kind": "movie", "title": clean_title(plain) or name, "year": None}
 
 
+def season_folder_name(fmt, season):
+    """Baut den Staffel-Ordnernamen nach einem Beispiel-Muster.
+
+    Die (letzte) Zahl im Muster steht für die Staffelnummer, ihre Länge für die
+    Stellenzahl:  "Staffel 01" -> "Staffel 03",  "S01" -> "S03",
+    "Season 1" -> "Season 3",  "Staffel 001" -> "Staffel 003".
+    Ohne Zahl im Muster wird die Nummer zweistellig angehängt.
+    """
+    fmt = (fmt or "Staffel 01").strip()
+    matches = list(re.finditer(r"\d+", fmt))
+    if not matches:
+        return f"{fmt} {season:02}".strip()
+    m = matches[-1]
+    num = str(season).zfill(len(m.group())) if len(m.group()) > 1 else str(season)
+    return _INVALID_CHARS.sub("", fmt[: m.start()] + num + fmt[m.end():])
+
+
 def video_destination(info, ext, cfg):
     """Zielpfad für ein erkanntes Video."""
     if info["kind"] == "series":
         se = f"S{info['season']:02}E{info['episode']:02}"
         folder = os.path.join(cfg["series_folder"], info["title"])
         if cfg.get("season_subfolders", True):
-            folder = os.path.join(folder, f"Staffel {info['season']:02}")
+            folder = os.path.join(folder, season_folder_name(cfg.get("season_folder_format"), info["season"]))
         return os.path.join(folder, f"{info['title']} {se}.{ext}")
     label = f"{info['title']} ({info['year']})" if info.get("year") else info["title"]
     return os.path.join(cfg["movies_folder"], label, f"{label}.{ext}")
